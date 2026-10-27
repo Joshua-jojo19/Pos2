@@ -6,218 +6,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; color: #222; }
-    h1 { margin-bottom: 4px; }
-    .status { font-size: 0.85em; color: #666; margin-bottom: 16px; }
-    .product { display: flex; justify-content: space-between; align-items: center;
-               border: 1px solid #e0e0e0; padding: 12px 14px; margin-bottom: 8px; border-radius: 8px; }
-    .product .info { display: flex; flex-direction: column; gap: 2px; }
-    .product .name { font-weight: 600; }
-    .product .meta { font-size: 0.85em; color: #666; }
-    .product button { padding: 8px 16px; cursor: pointer; border: none; border-radius: 6px;
-                      background: #2563eb; color: #fff; font-size: 0.95em; }
-    .product button:disabled { background: #cbd5e1; cursor: not-allowed; }
-    #cart { margin-top: 28px; border-top: 2px solid #333; padding-top: 16px; }
-    #cart h2 { margin-top: 0; }
-    .cart-item { display: flex; justify-content: space-between; align-items: center;
-                 margin-bottom: 8px; gap: 8px; }
-    .cart-item .controls { display: flex; align-items: center; gap: 6px; }
-    .cart-item button { width: 28px; height: 28px; border: 1px solid #ccc; background: #fff;
-                        border-radius: 4px; cursor: pointer; font-size: 1em; line-height: 1; }
-    .cart-item .remove { color: #b91c1c; border-color: #fca5a5; }
-    #total { font-weight: bold; font-size: 1.2em; margin-top: 12px; }
-    #checkout { margin-top: 14px; padding: 12px 24px; font-size: 1em; cursor: pointer;
-                border: none; border-radius: 8px; background: #16a34a; color: #fff; width: 100%; }
-    #checkout:disabled { background: #cbd5e1; cursor: not-allowed; }
-    #message { margin-top: 12px; min-height: 1.2em; }
-    .error { color: #b91c1c; }
-    .success { color: #15803d; }
-    .empty { color: #888; font-style: italic; }
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; color: #222; }
+    
+    /* Login Screen */
+    #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    .login-box h2 { margin-top: 0; text-align: center; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-primary { background: #2563eb; color: white; width: 100%; font-size: 16px; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .error { color: red; text-align: center; margin-bottom: 10px; font-size: 14px; }
+
+    /* Dashboard Header */
+    header { background: #333; color: white; padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 20px; }
+    .user-info { display: flex; align-items: center; gap: 15px; }
+    .btn-logout { background: #ef4444; color: white; padding: 5px 10px; font-size: 12px; }
+
+    /* Main Container */
+    #app-screen { display: none; }
+    .container { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    
+    /* POS Grid */
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 15px; }
+    .product-card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 6px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .product-card:hover { border-color: #2563eb; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); }
+    .product-card h3 { margin: 0 0 5px 0; font-size: 16px; }
+    .product-card .price { color: #15803d; font-weight: bold; }
+    .product-card .category { font-size: 12px; color: #666; }
   </style>
 </head>
 <body>
-  <h1>POS</h1>
-  <div class="status" id="status">Loading products…</div>
-  <div id="products"></div>
 
-  <div id="cart">
-    <h2>Cart</h2>
-    <div id="cart-items"></div>
-    <div id="total">Total: $0.00</div>
-    <button id="checkout" disabled>Checkout</button>
-    <div id="message"></div>
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen">
+    <div class="login-box">
+      <h2>POS Login</h2>
+      <div id="login-error" class="error"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter password">
+      </div>
+      <button class="btn-primary" onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <!-- APP SCREEN -->
+  <div id="app-screen">
+    <header>
+      <h1>POS System</h1>
+      <div class="user-info">
+        <span id="user-display"></span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="container" id="main-content">
+      <!-- Content will be injected here based on role -->
+    </div>
   </div>
 
   <script>
-    // ✅ YOUR CLOUDFLARE WORKER URL IS HERE
     const API = "https://blue-tooth-f141.josuwa2.workers.dev";
+    let currentUser = null;
 
-    let cart = [];
-    let productsById = {};
-
-    const statusEl  = document.getElementById("status");
-    const productsEl = document.getElementById("products");
-    const cartEl     = document.getElementById("cart-items");
-    const totalEl    = document.getElementById("total");
-    const checkoutEl = document.getElementById("checkout");
-    const messageEl  = document.getElementById("message");
-
-    function showMessage(text, type) {
-      messageEl.textContent = text;
-      messageEl.className = type || "";
-    }
-
-    async function loadProducts() {
-      statusEl.textContent = "Loading products…";
-      productsEl.innerHTML = "";
-      try {
-        const res = await fetch(API + "/api/products");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const products = await res.json();
-
-        if (!Array.isArray(products) || products.length === 0) {
-          statusEl.textContent = "No products in the database yet.";
-          return;
-        }
-
-        statusEl.textContent = products.length + " product(s) available";
-        productsById = {};
-        products.forEach(p => {
-          productsById[p.id] = p;
-          const div = document.createElement("div");
-          div.className = "product";
-
-          const info = document.createElement("div");
-          info.className = "info";
-          info.innerHTML =
-            `<span class="name">${p.name}</span>` +
-            `<span class="meta">$${Number(p.price).toFixed(2)} · stock: ${p.stock}</span>`;
-
-          const btn = document.createElement("button");
-          btn.textContent = "Add";
-          btn.disabled = p.stock <= 0;
-          btn.onclick = () => addToCart(p);
-
-          div.appendChild(info);
-          div.appendChild(btn);
-          productsEl.appendChild(div);
-        });
-      } catch (err) {
-        statusEl.textContent = "Failed to load products.";
-        showMessage("Error loading products: " + err.message, "error");
-      }
-    }
-
-    function addToCart(product) {
-      const existing = cart.find(i => i.id === product.id);
-      if (existing) {
-        if (existing.qty >= product.stock) {
-          showMessage(`Only ${product.stock} in stock.`, "error");
-          return;
-        }
-        existing.qty++;
-      } else {
-        cart.push({ id: product.id, name: product.name, price: Number(product.price), qty: 1 });
-      }
-      showMessage("");
-      renderCart();
-    }
-
-    function changeQty(id, delta) {
-      const item = cart.find(i => i.id === id);
-      if (!item) return;
-      const product = productsById[id];
-      const newQty = item.qty + delta;
-
-      if (newQty <= 0) {
-        cart = cart.filter(i => i.id !== id);
-      } else if (product && newQty > product.stock) {
-        showMessage(`Only ${product.stock} in stock.`, "error");
-        return;
-      } else {
-        item.qty = newQty;
-      }
-      renderCart();
-    }
-
-    function renderCart() {
-      cartEl.innerHTML = "";
-      if (cart.length === 0) {
-        cartEl.innerHTML = '<div class="empty">Cart is empty.</div>';
-        totalEl.textContent = "Total: $0.00";
-        checkoutEl.disabled = true;
-        return;
-      }
-
-      let total = 0;
-      cart.forEach(item => {
-        total += item.price * item.qty;
-        const row = document.createElement("div");
-        row.className = "cart-item";
-
-        const label = document.createElement("span");
-        label.textContent = `${item.name} — $${(item.price * item.qty).toFixed(2)}`;
-
-        const controls = document.createElement("div");
-        controls.className = "controls";
-
-        const minus = document.createElement("button");
-        minus.textContent = "−";
-        minus.onclick = () => changeQty(item.id, -1);
-
-        const qty = document.createElement("span");
-        qty.textContent = "x" + item.qty;
-
-        const plus = document.createElement("button");
-        plus.textContent = "+";
-        plus.onclick = () => changeQty(item.id, 1);
-
-        const remove = document.createElement("button");
-        remove.textContent = "×";
-        remove.className = "remove";
-        remove.onclick = () => changeQty(item.id, -item.qty);
-
-        controls.append(minus, qty, plus, remove);
-        row.append(label, controls);
-        cartEl.appendChild(row);
-      });
-
-      totalEl.textContent = "Total: $" + total.toFixed(2);
-      checkoutEl.disabled = false;
-    }
-
-    checkoutEl.onclick = async () => {
-      if (cart.length === 0) return;
-      checkoutEl.disabled = true;
-      showMessage("Processing…");
-
-      try {
-        for (const item of cart) {
-          const res = await fetch(API + "/api/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productId: item.id, quantity: item.qty })
-          });
-
-          let data = {};
-          try { data = await res.json(); } catch (_) {}
-
-          if (!res.ok) {
-            throw new Error(data.error || `Checkout failed (HTTP ${res.status})`);
-          }
-        }
-
-        showMessage("Checkout complete!", "success");
-        cart = [];
-        renderCart();
-        await loadProducts();
-      } catch (err) {
-        showMessage("Error: " + err.message, "error");
-        checkoutEl.disabled = false;
+    // Check if user is already logged in
+    window.onload = () => {
+      const savedUser = localStorage.getItem("pos_user");
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showApp();
       }
     };
 
-    loadProducts();
+    async function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const errorEl = document.getElementById("login-error");
+      
+      errorEl.textContent = "";
+      
+      try {
+        const res = await fetch(API + "/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || "Login failed");
+        
+        currentUser = data.user;
+        localStorage.setItem("pos_user", JSON.stringify(currentUser));
+        showApp();
+        
+      } catch (err) {
+        errorEl.textContent = err.message;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("pos_user");
+      currentUser = null;
+      document.getElementById("app-screen").style.display = "none";
+      document.getElementById("login-screen").style.display = "flex";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+    }
+
+    function showApp() {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app-screen").style.display = "block";
+      document.getElementById("user-display").textContent = `${currentUser.username} (${currentUser.role})`;
+
+      // Route based on role
+      if (currentUser.role === "admin") {
+        renderAdminPanel();
+      } else if (currentUser.role === "cashier") {
+        renderCashierPanel();
+      } else if (currentUser.role === "kitchen") {
+        renderKitchenPanel();
+      }
+    }
+
+    // --- ROLE PANELS ---
+    
+    function renderAdminPanel() {
+      document.getElementById("main-content").innerHTML = `
+        <div class="panel">
+          <h2>Admin Dashboard</h2>
+          <p>Welcome, Admin. Here you can manage the menu, view reports, and change prices.</p>
+          <button class="btn-primary" style="width:auto;" onclick="loadMenu()">View Menu Items</button>
+        </div>
+        <div id="admin-menu"></div>
+      `;
+    }
+
+    function renderCashierPanel() {
+      document.getElementById("main-content").innerHTML = `
+        <div class="panel">
+          <h2>Cashier POS</h2>
+          <p>Select items to build an order.</p>
+          <div id="cashier-products" class="product-grid">Loading...</div>
+        </div>
+      `;
+      loadProducts();
+    }
+
+    function renderKitchenPanel() {
+      document.getElementById("main-content").innerHTML = `
+        <div class="panel">
+          <h2>Kitchen Display</h2>
+          <p>No pending orders right now.</p>
+        </div>
+      `;
+    }
+
+    // --- FETCH DATA ---
+    
+    async function loadProducts() {
+      const grid = document.getElementById("cashier-products");
+      try {
+        const res = await fetch(API + "/api/products");
+        const products = await res.json();
+        
+        grid.innerHTML = "";
+        products.forEach(p => {
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.innerHTML = `
+            <div class="category">${p.category}</div>
+            <h3>${p.name}</h3>
+            <div class="price">LKR ${p.price.toFixed(2)}</div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (err) {
+        grid.innerHTML = `<p class="error">Failed to load products.</p>`;
+      }
+    }
   </script>
 </body>
 </html>
