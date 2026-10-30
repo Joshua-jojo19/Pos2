@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kitchen Display</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #222; color: white; margin: 0; }
+    header { background: #111; padding: 15px; display: flex; justify-content: space-between; }
+    .container { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .order-card { background: #333; border-left: 5px solid #f59e0b; padding: 20px; border-radius: 8px; }
+    .order-card h3 { margin-top: 0; color: #fcd34d; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Kitchen Display System</h1>
+    <div><span id="user-name"></span> | <button onclick="logout()">Logout</button></div>
+  </header>
+
+  <div class="container" id="orders">
+    <p>Loading orders...</p>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    protectRoute('kitchen');
+    document.getElementById("user-name").textContent = getCurrentUser().username;
+
+    async function loadOrders() {
+      try {
+        const orders = await apiRequest("/api/orders/pending");
+        const container = document.getElementById("orders");
+        
+        if (orders.length === 0) {
+          container.innerHTML = "<p style='color:#aaa;'>No pending orders right now.</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        orders.forEach(o => {
+          const div = document.createElement("div");
+          div.className = "order-card";
+          div.innerHTML = `
+            <h3>Order #${o.order_number}</h3>
+            <p>Type: ${o.order_type} ${o.table_number ? '(Table ' + o.table_number + ')' : ''}</p>
+            <p>Total: LKR ${o.total.toFixed(2)}</p>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Load initially, then every 10 seconds
+    loadOrders();
+    setInterval(loadOrders, 10000);
+  </script>
+</body>
+</html>
