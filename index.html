@@ -2,196 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>POS System</title>
+  <title>POS Login</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; color: #222; }
-    
-    /* Login Screen */
-    #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; }
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
     .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-    .login-box h2 { margin-top: 0; text-align: center; }
+    .login-box h2 { text-align: center; }
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-    button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-primary { background: #2563eb; color: white; width: 100%; font-size: 16px; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .error { color: red; text-align: center; margin-bottom: 10px; font-size: 14px; }
-
-    /* Dashboard Header */
-    header { background: #333; color: white; padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; }
-    header h1 { margin: 0; font-size: 20px; }
-    .user-info { display: flex; align-items: center; gap: 15px; }
-    .btn-logout { background: #ef4444; color: white; padding: 5px 10px; font-size: 12px; }
-
-    /* Main Container */
-    #app-screen { display: none; }
-    .container { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
-    .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    
-    /* POS Grid */
-    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 15px; }
-    .product-card { border: 1px solid #e0e0e0; padding: 15px; border-radius: 6px; text-align: center; cursor: pointer; transition: 0.2s; }
-    .product-card:hover { border-color: #2563eb; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); }
-    .product-card h3 { margin: 0 0 5px 0; font-size: 16px; }
-    .product-card .price { color: #15803d; font-weight: bold; }
-    .product-card .category { font-size: 12px; color: #666; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .btn { background: #2563eb; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+    .error { color: red; text-align: center; margin-bottom: 10px; }
   </style>
 </head>
 <body>
-
-  <!-- LOGIN SCREEN -->
-  <div id="login-screen">
-    <div class="login-box">
-      <h2>POS Login</h2>
-      <div id="login-error" class="error"></div>
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Enter username">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Enter password">
-      </div>
-      <button class="btn-primary" onclick="login()">Login</button>
-    </div>
+  <div class="login-box">
+    <h2>POS Login</h2>
+    <div id="error-msg" class="error"></div>
+    <div class="form-group"><input type="text" id="username" placeholder="Username"></div>
+    <div class="form-group"><input type="password" id="password" placeholder="Password"></div>
+    <button class="btn" onclick="handleLogin()">Login</button>
   </div>
 
-  <!-- APP SCREEN -->
-  <div id="app-screen">
-    <header>
-      <h1>POS System</h1>
-      <div class="user-info">
-        <span id="user-display"></span>
-        <button class="btn-logout" onclick="logout()">Logout</button>
-      </div>
-    </header>
-
-    <div class="container" id="main-content">
-      <!-- Content will be injected here based on role -->
-    </div>
-  </div>
-
+  <script src="app.js"></script>
   <script>
-    const API = "https://blue-tooth-f141.josuwa2.workers.dev";
-    let currentUser = null;
+    // If already logged in, skip login page
+    const user = getCurrentUser();
+    if (user) {
+      window.location.href = user.role === 'cashier' ? "cashier.html" : (user.role === 'kitchen' ? "kitchen.html" : "admin.html");
+    }
 
-    // Check if user is already logged in
-    window.onload = () => {
-      const savedUser = localStorage.getItem("pos_user");
-      if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        showApp();
-      }
-    };
-
-    async function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      const errorEl = document.getElementById("login-error");
-      
-      errorEl.textContent = "";
-      
+    async function handleLogin() {
+      const u = document.getElementById("username").value;
+      const p = document.getElementById("password").value;
       try {
-        const res = await fetch(API + "/api/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        
-        const data = await res.json();
-        
-        if (!res.ok) throw new Error(data.error || "Login failed");
-        
-        currentUser = data.user;
-        localStorage.setItem("pos_user", JSON.stringify(currentUser));
-        showApp();
-        
+        const user = await login(u, p);
+        if (user.role === 'cashier') window.location.href = "cashier.html";
+        else if (user.role === 'kitchen') window.location.href = "kitchen.html";
+        else window.location.href = "admin.html"; // We will build this next
       } catch (err) {
-        errorEl.textContent = err.message;
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem("pos_user");
-      currentUser = null;
-      document.getElementById("app-screen").style.display = "none";
-      document.getElementById("login-screen").style.display = "flex";
-      document.getElementById("username").value = "";
-      document.getElementById("password").value = "";
-    }
-
-    function showApp() {
-      document.getElementById("login-screen").style.display = "none";
-      document.getElementById("app-screen").style.display = "block";
-      document.getElementById("user-display").textContent = `${currentUser.username} (${currentUser.role})`;
-
-      // Route based on role
-      if (currentUser.role === "admin") {
-        renderAdminPanel();
-      } else if (currentUser.role === "cashier") {
-        renderCashierPanel();
-      } else if (currentUser.role === "kitchen") {
-        renderKitchenPanel();
-      }
-    }
-
-    // --- ROLE PANELS ---
-    
-    function renderAdminPanel() {
-      document.getElementById("main-content").innerHTML = `
-        <div class="panel">
-          <h2>Admin Dashboard</h2>
-          <p>Welcome, Admin. Here you can manage the menu, view reports, and change prices.</p>
-          <button class="btn-primary" style="width:auto;" onclick="loadMenu()">View Menu Items</button>
-        </div>
-        <div id="admin-menu"></div>
-      `;
-    }
-
-    function renderCashierPanel() {
-      document.getElementById("main-content").innerHTML = `
-        <div class="panel">
-          <h2>Cashier POS</h2>
-          <p>Select items to build an order.</p>
-          <div id="cashier-products" class="product-grid">Loading...</div>
-        </div>
-      `;
-      loadProducts();
-    }
-
-    function renderKitchenPanel() {
-      document.getElementById("main-content").innerHTML = `
-        <div class="panel">
-          <h2>Kitchen Display</h2>
-          <p>No pending orders right now.</p>
-        </div>
-      `;
-    }
-
-    // --- FETCH DATA ---
-    
-    async function loadProducts() {
-      const grid = document.getElementById("cashier-products");
-      try {
-        const res = await fetch(API + "/api/products");
-        const products = await res.json();
-        
-        grid.innerHTML = "";
-        products.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "product-card";
-          card.innerHTML = `
-            <div class="category">${p.category}</div>
-            <h3>${p.name}</h3>
-            <div class="price">LKR ${p.price.toFixed(2)}</div>
-          `;
-          grid.appendChild(card);
-        });
-      } catch (err) {
-        grid.innerHTML = `<p class="error">Failed to load products.</p>`;
+        document.getElementById("error-msg").textContent = err.message;
       }
     }
   </script>
