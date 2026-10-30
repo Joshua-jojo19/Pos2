@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; }
+    header { background: #111827; color: white; padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { margin: 0; font-size: 20px; }
+    .container { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
+    th { background: #f9fafb; font-weight: bold; }
+    .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-save { background: #2563eb; color: white; }
+    .btn-toggle { background: #f59e0b; color: white; }
+    .btn-toggle.available { background: #16a34a; }
+    input[type="number"] { width: 80px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    .logout { background: #ef4444; color: white; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Admin Dashboard</h1>
+    <div><span id="user-name"></span> | <button class="logout" onclick="logout()">Logout</button></div>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <h2>Menu Management</h2>
+      <p>Update prices and availability. Changes save instantly to the database.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Item Name</th>
+            <th>Price (LKR)</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="menu-table">
+          <tr><td colspan="5">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    protectRoute('admin');
+    document.getElementById("user-name").textContent = getCurrentUser().username;
+
+    async function loadMenu() {
+      try {
+        // We fetch all products (even the unavailable ones) for the Admin
+        const products = await apiRequest("/api/admin/products");
+        const tbody = document.getElementById("menu-table");
+        tbody.innerHTML = "";
+
+        products.forEach(p => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${p.category}</td>
+            <td><strong>${p.name}</strong></td>
+            <td><input type="number" id="price-${p.id}" value="${p.price}" step="10"></td>
+            <td>
+              <span style="color: ${p.is_available ? '#16a34a' : '#ef4444'}; font-weight:bold;">
+                ${p.is_available ? 'Available' : 'Sold Out'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-save" onclick="updatePrice(${p.id})">Save Price</button>
+              <button class="btn btn-toggle ${p.is_available ? 'available' : ''}" onclick="toggleAvailability(${p.id}, ${p.is_available})">
+                ${p.is_available ? 'Mark Sold Out' : 'Mark Available'}
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        alert("Failed to load menu: " + err.message);
+      }
+    }
+
+    async function updatePrice(id) {
+      const newPrice = document.getElementById(`price-${id}`).value;
+      try {
+        await apiRequest("/api/admin/update-price", "POST", { 
+          productId: id, 
+          newPrice: parseFloat(newPrice),
+          adminId: getCurrentUser().id
+        });
+        alert("Price updated successfully!");
+        loadMenu(); // reload
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    async function toggleAvailability(id, currentStatus) {
+      try {
+        await apiRequest("/api/admin/toggle-availability", "POST", { 
+          productId: id, 
+          isAvailable: currentStatus ? 0 : 1,
+          adminId: getCurrentUser().id
+        });
+        loadMenu(); // reload
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+    }
+
+    loadMenu();
+  </script>
+</body>
+</html>
