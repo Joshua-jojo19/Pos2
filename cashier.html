@@ -2,62 +2,112 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cashier POS</title>
+  <title>KUKKA'S System - POS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; }
-    header { background: #333; color: white; padding: 15px; display: flex; justify-content: space-between; }
-    .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
-    .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-    .card { border: 1px solid #ccc; padding: 15px; border-radius: 6px; text-align: center; cursor: pointer; }
-    .card:hover { background: #f0f4ff; border-color: #2563eb; }
-    .cart-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0; }
-    .btn-checkout { background: #16a34a; color: white; width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 18px; margin-top: 15px; cursor: pointer; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-    .modal-box { background: white; padding: 20px; border-radius: 8px; width: 300px; }
-    .modal-box input, .modal-box select { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+    :root {
+      --bg-dark: #0f172a; --bg-panel: #1e293b; --text-main: #f8fafc;
+      --text-muted: #94a3b8; --accent: #6366f1; --accent-hover: #4f46e5;
+      --success: #10b981; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: var(--bg-panel); border-right: 1px solid #334155; display: flex; flex-direction: column; }
+    .logo { padding: 20px; font-size: 22px; font-weight: bold; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    .logo span { color: var(--accent); }
+    .nav-item { padding: 15px 20px; color: var(--text-muted); text-decoration: none; font-size: 14px; cursor: pointer; }
+    .nav-item.active { background: #334155; color: var(--text-main); border-left: 3px solid var(--accent); font-weight: bold; }
+
+    /* Main Content */
+    .main-content { flex: 1; display: flex; flex-direction: column; }
+    header { padding: 15px 20px; background: var(--bg-panel); border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Product Grid */
+    .pos-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+    .product-card { background: var(--bg-panel); border: 1px solid #334155; padding: 15px; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; }
+    .product-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .product-card h4 { margin-bottom: 5px; font-size: 15px; }
+    .product-card p { color: var(--accent); font-weight: bold; font-size: 14px; }
+
+    /* Cart */
+    .cart-sidebar { width: 380px; background: var(--bg-panel); border-left: 1px solid #334155; display: flex; flex-direction: column; }
+    .cart-header { padding: 20px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    .cart-items { flex: 1; overflow-y: auto; padding: 20px; }
+    .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding: 10px 0; }
+    .cart-controls button { background: #334155; color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; margin: 0 5px; }
+    .cart-totals { padding: 20px; background: #0f172a; border-top: 1px solid #334155; }
+    .btn-checkout { background: var(--success); color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; margin-top: 15px; cursor: pointer; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+    .modal-content { background: var(--bg-panel); padding: 25px; border-radius: 12px; width: 350px; border: 1px solid #334155; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 13px; }
+    .form-group select, .form-group input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Cashier Terminal</h1>
-    <div><span id="user-name"></span> | <button onclick="logout()">Logout</button></div>
-  </header>
 
-  <div class="layout">
-    <div class="panel">
-      <h2>Menu</h2>
-      <div id="products" class="grid">Loading...</div>
-    </div>
-    <div class="panel">
-      <h2>Cart</h2>
-      <div id="cart"></div>
-      <div id="totals" style="margin-top: 15px; font-weight: bold;"></div>
-      <button class="btn-checkout" onclick="openModal()">Charge</button>
+  <div class="sidebar">
+    <div class="logo"><span>R</span> KUKKA'S</div>
+    <a class="nav-item active">🛒 Point of Sale</a>
+    <a class="nav-item" onclick="window.location.href='admin.html'">📋 Menu Management</a>
+    <a class="nav-item" onclick="window.location.href='kitchen.html'">🍳 Kitchen Display</a>
+    <a class="nav-item" style="margin-top: auto; color: var(--danger);" onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="main-content">
+    <header>
+      <h2>New Order</h2>
+      <div><span id="user-name" style="color: var(--text-muted);"></span></div>
+    </header>
+    <div class="pos-area">
+      <div class="product-grid" id="products">Loading...</div>
     </div>
   </div>
 
-  <!-- Payment Modal -->
+  <div class="cart-sidebar">
+    <div class="cart-header">
+      <h2>Current Order</h2>
+      <button style="background:none; border:none; color:var(--danger); cursor:pointer;" onclick="clearCart()">Clear</button>
+    </div>
+    <div class="cart-items" id="cart"></div>
+    <div class="cart-totals">
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Subtotal</span><span id="subtotal">LKR 0.00</span></div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px; color:var(--text-muted);"><span>Tax (5%)</span><span id="tax">LKR 0.00</span></div>
+      <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:18px; margin-top:10px; color:var(--accent);"><span>Total</span><span id="total">LKR 0.00</span></div>
+      <button class="btn-checkout" onclick="openModal()">Charge LKR</button>
+    </div>
+  </div>
+
+  <!-- Checkout Modal -->
   <div id="modal" class="modal">
-    <div class="modal-box">
-      <h3>Complete Order</h3>
-      <label>Type</label>
-      <select id="order-type"><option>Dine-in</option><option>Takeaway</option></select>
-      <label>Table No.</label>
-      <input type="text" id="table-no" placeholder="Table">
-      <button class="btn-checkout" onclick="processCheckout()">Confirm Payment</button>
-      <button style="background:red; color:white; width:100%; padding:10px; border:none; margin-top:10px;" onclick="document.getElementById('modal').style.display='none'">Cancel</button>
+    <div class="modal-content">
+      <h2 style="margin-bottom: 20px;">Checkout</h2>
+      <div class="form-group">
+        <label>Order Type</label>
+        <select id="order-type"><option>Dine-in</option><option>Takeaway</option><option>Delivery</option></select>
+      </div>
+      <div class="form-group">
+        <label>Table / Reference</label>
+        <input type="text" id="table-no" placeholder="e.g. Table 4">
+      </div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn-checkout" style="background:var(--accent);" onclick="processCheckout()">Confirm</button>
+        <button class="btn-checkout" style="background:var(--danger);" onclick="document.getElementById('modal').style.display='none'">Cancel</button>
+      </div>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
-    protectRoute('cashier'); // Stops unauthorized access
-    document.getElementById("user-name").textContent = getCurrentUser().username;
-    
+    protectRoute('cashier');
+    document.getElementById("user-name").textContent = `Cashier: ${getCurrentUser().username}`;
     let cart = [];
-    
+
     async function loadProducts() {
       try {
         const products = await apiRequest("/api/products");
@@ -65,8 +115,8 @@
         grid.innerHTML = "";
         products.forEach(p => {
           const card = document.createElement("div");
-          card.className = "card";
-          card.innerHTML = `<h4>${p.name}</h4><p>LKR ${p.price}</p>`;
+          card.className = "product-card";
+          card.innerHTML = `<h4>${p.name}</h4><p>LKR ${p.price.toFixed(2)}</p>`;
           card.onclick = () => addToCart(p);
           grid.appendChild(card);
         });
@@ -80,16 +130,44 @@
       renderCart();
     }
 
+    function changeQty(id, delta) {
+      const item = cart.find(i => i.id === id);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+      renderCart();
+    }
+
+    function clearCart() { cart = []; renderCart(); }
+
     function renderCart() {
       let subtotal = 0;
       const cartEl = document.getElementById("cart");
       cartEl.innerHTML = "";
+      
+      if(cart.length === 0) cartEl.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Ready for the next customer</p>";
+
       cart.forEach(item => {
         subtotal += (item.price * item.qty);
-        cartEl.innerHTML += `<div class="cart-item"><span>${item.name} x${item.qty}</span><span>LKR ${item.price * item.qty}</span></div>`;
+        cartEl.innerHTML += `
+          <div class="cart-item">
+            <div>
+              <div style="font-weight:bold;">${item.name}</div>
+              <div style="color:var(--text-muted); font-size:12px;">LKR ${item.price}</div>
+            </div>
+            <div class="cart-controls">
+              <button onclick="changeQty(${item.id}, -1)">-</button>
+              <span>${item.qty}</span>
+              <button onclick="changeQty(${item.id}, 1)">+</button>
+            </div>
+          </div>
+        `;
       });
+
       const tax = subtotal * 0.05;
-      document.getElementById("totals").innerHTML = `Subtotal: LKR ${subtotal.toFixed(2)}<br>Tax: LKR ${tax.toFixed(2)}<br>Total: LKR ${(subtotal+tax).toFixed(2)}`;
+      document.getElementById("subtotal").textContent = `LKR ${subtotal.toFixed(2)}`;
+      document.getElementById("tax").textContent = `LKR ${tax.toFixed(2)}`;
+      document.getElementById("total").textContent = `LKR ${(subtotal+tax).toFixed(2)}`;
     }
 
     function openModal() {
@@ -106,12 +184,12 @@
           cashierId: getCurrentUser().id
         });
         alert("Order sent to kitchen!");
-        cart = [];
-        renderCart();
+        clearCart();
         document.getElementById("modal").style.display = "none";
       } catch (err) { alert("Checkout failed: " + err.message); }
     }
 
+    renderCart();
     loadProducts();
   </script>
 </body>
