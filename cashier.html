@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cashier POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; }
+    header { background: #333; color: white; padding: 15px; display: flex; justify-content: space-between; }
+    .layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .card { border: 1px solid #ccc; padding: 15px; border-radius: 6px; text-align: center; cursor: pointer; }
+    .card:hover { background: #f0f4ff; border-color: #2563eb; }
+    .cart-item { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding: 10px 0; }
+    .btn-checkout { background: #16a34a; color: white; width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 18px; margin-top: 15px; cursor: pointer; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+    .modal-box { background: white; padding: 20px; border-radius: 8px; width: 300px; }
+    .modal-box input, .modal-box select { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Cashier Terminal</h1>
+    <div><span id="user-name"></span> | <button onclick="logout()">Logout</button></div>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Menu</h2>
+      <div id="products" class="grid">Loading...</div>
+    </div>
+    <div class="panel">
+      <h2>Cart</h2>
+      <div id="cart"></div>
+      <div id="totals" style="margin-top: 15px; font-weight: bold;"></div>
+      <button class="btn-checkout" onclick="openModal()">Charge</button>
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-box">
+      <h3>Complete Order</h3>
+      <label>Type</label>
+      <select id="order-type"><option>Dine-in</option><option>Takeaway</option></select>
+      <label>Table No.</label>
+      <input type="text" id="table-no" placeholder="Table">
+      <button class="btn-checkout" onclick="processCheckout()">Confirm Payment</button>
+      <button style="background:red; color:white; width:100%; padding:10px; border:none; margin-top:10px;" onclick="document.getElementById('modal').style.display='none'">Cancel</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    protectRoute('cashier'); // Stops unauthorized access
+    document.getElementById("user-name").textContent = getCurrentUser().username;
+    
+    let cart = [];
+    
+    async function loadProducts() {
+      try {
+        const products = await apiRequest("/api/products");
+        const grid = document.getElementById("products");
+        grid.innerHTML = "";
+        products.forEach(p => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `<h4>${p.name}</h4><p>LKR ${p.price}</p>`;
+          card.onclick = () => addToCart(p);
+          grid.appendChild(card);
+        });
+      } catch (err) { alert("Failed to load products"); }
+    }
+
+    function addToCart(p) {
+      const item = cart.find(i => i.id === p.id);
+      if (item) item.qty++;
+      else cart.push({ ...p, qty: 1 });
+      renderCart();
+    }
+
+    function renderCart() {
+      let subtotal = 0;
+      const cartEl = document.getElementById("cart");
+      cartEl.innerHTML = "";
+      cart.forEach(item => {
+        subtotal += (item.price * item.qty);
+        cartEl.innerHTML += `<div class="cart-item"><span>${item.name} x${item.qty}</span><span>LKR ${item.price * item.qty}</span></div>`;
+      });
+      const tax = subtotal * 0.05;
+      document.getElementById("totals").innerHTML = `Subtotal: LKR ${subtotal.toFixed(2)}<br>Tax: LKR ${tax.toFixed(2)}<br>Total: LKR ${(subtotal+tax).toFixed(2)}`;
+    }
+
+    function openModal() {
+      if (cart.length === 0) return alert("Cart is empty");
+      document.getElementById("modal").style.display = "flex";
+    }
+
+    async function processCheckout() {
+      try {
+        await apiRequest("/api/checkout", "POST", {
+          cart: cart,
+          orderType: document.getElementById("order-type").value,
+          tableNumber: document.getElementById("table-no").value,
+          cashierId: getCurrentUser().id
+        });
+        alert("Order sent to kitchen!");
+        cart = [];
+        renderCart();
+        document.getElementById("modal").style.display = "none";
+      } catch (err) { alert("Checkout failed: " + err.message); }
+    }
+
+    loadProducts();
+  </script>
+</body>
+</html>
