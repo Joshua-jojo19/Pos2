@@ -2,30 +2,70 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Kitchen Display</title>
+  <title>KUKKA'S System - Kitchen</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: system-ui, sans-serif; background: #222; color: white; margin: 0; }
-    header { background: #111; padding: 15px; display: flex; justify-content: space-between; }
-    .container { padding: 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-    .order-card { background: #333; border-left: 5px solid #f59e0b; padding: 20px; border-radius: 8px; }
-    .order-card h3 { margin-top: 0; color: #fcd34d; }
+    :root {
+      --bg-dark: #0f172a; --bg-panel: #1e293b; --text-main: #f8fafc;
+      --text-muted: #94a3b8; --accent: #6366f1; --success: #10b981; 
+      --warning: #f59e0b; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: var(--bg-panel); border-right: 1px solid #334155; display: flex; flex-direction: column; }
+    .logo { padding: 20px; font-size: 22px; font-weight: bold; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+    .logo span { color: var(--accent); }
+    .nav-item { padding: 15px 20px; color: var(--text-muted); text-decoration: none; font-size: 14px; cursor: pointer; }
+    .nav-item.active { background: #334155; color: var(--text-main); border-left: 3px solid var(--accent); font-weight: bold; }
+
+    /* Main Content */
+    .main-content { flex: 1; display: flex; flex-direction: column; }
+    header { padding: 15px 20px; background: var(--bg-panel); border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Orders Grid */
+    .orders-container { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; overflow-y: auto; }
+    .order-card { background: var(--bg-panel); border-radius: 12px; overflow: hidden; border: 1px solid #334155; display: flex; flex-direction: column; }
+    
+    .order-header { background: #273549; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--warning); }
+    .order-header h3 { color: var(--warning); font-size: 18px; }
+    .order-info { padding: 15px; border-bottom: 1px solid #334155; font-size: 14px; color: var(--text-muted); }
+    
+    .order-items { padding: 15px; flex: 1; }
+    .order-item-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
+    
+    .order-actions { padding: 15px; display: flex; gap: 10px; }
+    .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .btn-prep { background: var(--warning); color: #000; }
+    .btn-ready { background: var(--success); color: white; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Kitchen Display System</h1>
-    <div><span id="user-name"></span> | <button onclick="logout()">Logout</button></div>
-  </header>
 
-  <div class="container" id="orders">
-    <p>Loading orders...</p>
+  <div class="sidebar">
+    <div class="logo"><span>R</span> KUKKA'S</div>
+    <a class="nav-item" onclick="window.location.href='cashier.html'">🛒 Point of Sale</a>
+    <a class="nav-item" onclick="window.location.href='admin.html'">📋 Menu Management</a>
+    <a class="nav-item active">🍳 Kitchen Display</a>
+    <a class="nav-item" style="margin-top: auto; color: var(--danger);" onclick="logout()">🚪 Logout</a>
+  </div>
+
+  <div class="main-content">
+    <header>
+      <h2>Kitchen Orders</h2>
+      <div><span id="user-name" style="color: var(--text-muted);"></span></div>
+    </header>
+
+    <div class="orders-container" id="orders">
+      <p style="color: var(--text-muted);">Loading orders...</p>
+    </div>
   </div>
 
   <script src="app.js"></script>
   <script>
     protectRoute('kitchen');
-    document.getElementById("user-name").textContent = getCurrentUser().username;
+    document.getElementById("user-name").textContent = `Kitchen Staff: ${getCurrentUser().username}`;
 
     async function loadOrders() {
       try {
@@ -33,7 +73,7 @@
         const container = document.getElementById("orders");
         
         if (orders.length === 0) {
-          container.innerHTML = "<p style='color:#aaa;'>No pending orders right now.</p>";
+          container.innerHTML = "<p style='color:var(--text-muted);'>No pending orders right now. Kitchen is clear! 🧑‍🍳</p>";
           return;
         }
 
@@ -41,16 +81,55 @@
         orders.forEach(o => {
           const div = document.createElement("div");
           div.className = "order-card";
+          
+          // Format the time
+          const time = new Date(o.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
           div.innerHTML = `
-            <h3>Order #${o.order_number}</h3>
-            <p>Type: ${o.order_type} ${o.table_number ? '(Table ' + o.table_number + ')' : ''}</p>
-            <p>Total: LKR ${o.total.toFixed(2)}</p>
+            <div class="order-header">
+              <h3>Order #${o.order_number}</h3>
+              <span style="font-weight:bold; color:white;">${time}</span>
+            </div>
+            <div class="order-info">
+              <strong>${o.order_type}</strong> ${o.table_number ? `| Table ${o.table_number}` : ''}
+            </div>
+            <div class="order-items" id="items-${o.id}">
+               <p style="color:var(--text-muted); font-size: 13px;">Loading items...</p>
+            </div>
+            <div class="order-actions">
+              <button class="btn btn-ready" onclick="completeOrder(${o.id})">Mark as Ready ✓</button>
+            </div>
           `;
           container.appendChild(div);
+          loadOrderItems(o.id);
         });
       } catch (err) {
         console.error(err);
       }
+    }
+
+    async function loadOrderItems(orderId) {
+      try {
+        // We need a quick API to get items for an order
+        const items = await apiRequest(`/api/orders/items/${orderId}`);
+        const box = document.getElementById(`items-${orderId}`);
+        box.innerHTML = "";
+        items.forEach(i => {
+          box.innerHTML += `
+            <div class="order-item-row">
+              <span>${i.name}</span>
+              <span style="color:var(--accent);">x${i.quantity}</span>
+            </div>
+          `;
+        });
+      } catch (err) {}
+    }
+
+    async function completeOrder(orderId) {
+      try {
+        await apiRequest("/api/orders/complete", "POST", { orderId });
+        loadOrders(); // refresh
+      } catch (err) { alert("Error completing order"); }
     }
 
     // Load initially, then every 10 seconds
